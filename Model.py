@@ -22,34 +22,32 @@ print(f"Using {device} device")
 
 
 class Brain(nn.Module):
-     """
-          This is the code to create the linear neural network model using pytorch.
-          This code is largely taken from the pytorch website. 
-          https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html
-     """
+    """
+        This is the code to create the linear neural network model using pytorch.
+        This code is largely taken from the pytorch website. 
+        https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html
+    """
 
-     def __init__(self):
+    def __init__(self):
         super().__init__() # call the parent init fucntion
-        self.flatten = nn.Flatten()
         input_size = 73
         hidden_size = 100
-        output_size = 4
+        output_size = 5
+
+        self.layer1 = nn.Linear(input_size, hidden_size) # first layer goes from 73 inputs to 100 hidden
+
+        self.layer2 = nn.Linear(hidden_size, output_size) # this goes from the 100 hidden to 4 output
 
 
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(input_size, hidden_size),   # hidden layer with 73 iputs--the number of observations  for the ED angle sweep
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),   #Hidden layer
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size), # second hidden layer
-            nn.ReLU(), 
-            nn.Linear(hidden_size, output_size),  #Hidden Layers and 4 directions to move in
-        )
+    def forward(self, x): 
+        """
+            This function will act as a helper to pass information forward to the further layers
+            :param x: this is the data that will pass through the neural netword
+        """
+        x = F.relu(self.layer1(x)) # apply the relu activation function to the hidden layer
 
-        def forward(self, x): 
-            """
-                This function will act as a helper to pass information forward to the further layers
-                :param x: this is the data that will pass through the neural netword
-            """
-            logits = self.linear_relu_stack(x)
-            return logits
+        x = self.layer2(x) # outputs the last layer after the actiuvation layer
+
+        return x
+
+
