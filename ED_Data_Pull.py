@@ -25,14 +25,26 @@ class DataPuller(Dataset):
           """
           Loads and processes all .csv files. Manually assigns column names since the files have no headers.
           """
-          for idx, filename in enumerate(sorted(os.listdir(folder_path))):
+          class_counter = 0  # Counter for assigning numeric labels to unique classes
+          allowed_classes = {'PE': 0, 'PET':1, 'PP':3, 'PS':4}
+
+          for idx, filename in enumerate(os.listdir(folder_path)):
                if filename.endswith('.csv'):
                     filepath = os.path.join(folder_path, filename)
-                    label_name = os.path.splitext(filename)[0].split("_")[0]
-                    # print(os.path.splitext(filename)[0].split("_")[0])
+                    label_name = os.path.splitext(filename)[0].split("-")[0]
+                    #print(f"idx: {idx} file name: {os.path.splitext(filename)[0].split("-")[0]}")
+
+                    index_label = allowed_classes[label_name]
+
+                    #print(f"index: {index_label} file name: {os.path.splitext(filename)[0].split("-")[0]}")
+
+                    # Assign a consistent label for each material type
+                    if label_name not in self.label_map:
+                         self.label_map[label_name] = class_counter
+                         class_counter += 1
 
                     # Assign a numeric label to this file
-                    self.label_map[label_name] = idx
+                    self.label_map[label_name] = index_label
 
                     # Read CSV with no headers, columns 1-5 are indivudal reads, column 6 is the average and coluumn 7 is the standard error
                     df = pd.read_csv(filepath, header=None)
@@ -45,7 +57,7 @@ class DataPuller(Dataset):
                          avg_tensor = torch.tensor(df[ii_reads].values, dtype=torch.float32)
 
                          self.data.append(avg_tensor)
-                         self.labels.append(idx)
+                         self.labels.append(index_label)
                          self.file_names.append(label_name)
 
           self.labels = torch.tensor(self.labels, dtype=torch.long)
@@ -116,9 +128,9 @@ if __name__ == '__main__':
      dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
      for batch_data, batch_labels in dataloader:
-          print("Batch data:", batch_data)
+         # print("Batch data:", batch_data)
           print("Batch labels:", batch_labels)
-          print(dataset.label_map)
+          print(f"Label Map:",dataset.label_map)
           break
 
 
