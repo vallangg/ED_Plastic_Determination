@@ -12,9 +12,8 @@ import torch.optim as optim # import optimizer function
 import torch.nn.functional as F # import more helper functions
 from Model import Brain # bring in the brain so that we can work with it 
 import matplotlib.pyplot as plt # import matplot lib to make graphs
-from sklearn.metrics import roc_curve, auc, confusion_matrix # import sklean to help do the data analysis
+from sklearn.metrics import roc_curve, auc # import sklean to help do the data analysis
 import pandas as pd
-import seaborn as sb
 
 
 class Agent:
@@ -45,14 +44,14 @@ class Agent:
           self.model.to(self.device)
 
           self.criterion = nn.CrossEntropyLoss()
-          self.optimizer = T.optim.Adam(self.model.parameters(), lr=lr)
+          self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
 
      def train(self):
           """
           Trains the model for the specified number of epochs.
           """
           for epoch in range(self.epochs): # loops over the number of epochs
-               self.model.train() # set the model to training mode
+               self.model.train() # trains for each one
                running_loss = 0.0
                for inputs, labels in self.train_loader:
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -69,8 +68,8 @@ class Agent:
                     running_loss += loss.item()
 
                avg_loss = running_loss / len(self.train_loader)
+               print(f"Train Set Size: {len(self.train_loader)}")
                print(f"Epoch [{epoch+1}/{self.epochs}], Loss: {avg_loss:.4f}")
-
 
      def evaluate(self):
           """
@@ -97,36 +96,23 @@ class Agent:
                     all_labels.append(labels)
 
           accuracy = 100 * correct / total
-          print(f"Test Accuracy: {accuracy:.2f}%")
+          print(f"Test Accuracy: {accuracy:.2f}%, Train Test Size: {len(train_loader)}")
           return T.cat(all_outputs), T.cat(all_labels) # return the label values
 
 
 
      def plot_auc_roc(self, save_path="roc_curve.png"):
-          result = self.evaluate()
-          if result is None:
-               print("AUC plot skipped: No data returned from evaluate().")
-               return
+          
+          result = self.evaluate() # load the results
 
+          
           outputs, labels = result
-
-          # Move to CPU, detach, convert to numpy
-          probs = F.softmax(outputs, dim=1).detach().cpu().numpy()
-          labels = labels.detach().cpu()
-          onehot = F.one_hot(labels, num_classes=self.num_classes).cpu().numpy()
+          probs = F.softmax(outputs, dim=1).numpy()
+          onehot = F.one_hot(labels, num_classes=self.num_classes).numpy()
 
           plt.figure()
-
           for i in range(self.num_classes):
-               y_true = onehot[:, i]
-               y_score = probs[:, i]
-
-               # Skip class if it has no positive samples in ground truth
-               if np.sum(y_true) == 0:
-                    print(f"Skipping class {i}: no positive samples in y_true.")
-                    continue
-
-               fpr, tpr, _ = roc_curve(y_true, y_score)
+               fpr, tpr, _ = roc_curve(onehot[:, i], probs[:, i])
                roc_auc = auc(fpr, tpr)
                plt.plot(fpr, tpr, label=f'Class {i} (AUC = {roc_auc:.2f})')
 
@@ -155,95 +141,14 @@ class Agent:
      def save_model(self, save_path="model.pth"):
           T.save(self.model.state_dict(), save_path)
 
-def plot_confusion_matrix(agent, data_loader, class_names):
-     """
-          # code to make a confusion matrix 
-          # https://jillanisofttech.medium.com/building-an-ann-with-pytorch-a-deep-dive-into-neural-network-training-a7fdaa047d81
-     """
-     agent.model.eval()
-     y_pred = []
-     y_true = []
-
-     with T.no_grad():
-          for inputs, labels in data_loader:
-               inputs = inputs.to(agent.device)
-               labels = labels.to(agent.device)
-
-               outputs = agent.model(inputs)
-               _, predicted = T.max(outputs, 1)
-
-               y_pred.extend(predicted.cpu().numpy())
-               y_true.extend(labels.cpu().numpy())
-
-     # Create normalized confusion matrix
-     cf_matrix = confusion_matrix(y_true, y_pred)
-     row_sums = np.sum(cf_matrix, axis=1, keepdims=True)
-     row_sums[row_sums == 0] = 1  # Avoid division by zero
-
-     df_cm = pd.DataFrame(cf_matrix / row_sums, index=class_names, columns=class_names)
-
-     plt.figure(figsize=(10, 7))
-     sb.heatmap(df_cm, annot=True, cmap="Blues", fmt=".2f")
-     plt.title("Normalized Confusion Matrix")
-     plt.xlabel("Predicted Label")
-     plt.ylabel("True Label")
-     plt.show()
-
-
-
-
 # define variables
 model = Brain()
-dataset = DataPuller('/Users/vandergeorgeff/Library/CloudStorage/OneDrive-UniversityofDenver/Bok Group/Microplastics/AS_Data')
-# dataset = DataPuller('C:/Users/georg/OneDrive - University of Denver/Bok Group/Microplastics/AS_Data')
-splitter = DatasetSplitter(dataset, train_ratio=0.8)
+dataset = DataPuller('C:/Users/georg/OneDrive - University of Denver/Bok Group/Microplastics/AS_Data')
+splitter = DatasetSplitter(dataset, train_ratio=0.1)
 train_loader, test_loader = splitter.get_loaders()
 
-all_loaders = splitter.get_all_loaders()
 
-agent = Agent(model, test_loader, train_loader, epochs=300)
+
+agent = Agent(model, train_loader, test_loader, epochs=200)
 agent.train()
 agent.evaluate()
-
-class_names = ("PE", "PET", "PP", "PS")  # Make sure this matches your 5 classes
-plot_confusion_matrix(agent, test_loader, class_names)
-
-
-
-
-# # code to make a confusion matrix 
-# # https://jillanisofttech.medium.com/building-an-ann-with-pytorch-a-deep-dive-into-neural-network-training-a7fdaa047d81
-
-# conf_loaders = splitter.get_all_loaders()
-
-# y_pred = []
-# y_true = []
-
-# for inputs, labels in conf_loaders:
-
-#      output = model(inputs)
-
-#      output = (T.max(T.exp(output), 1)[1]).data.cpu().numpy()
-
-#      y_pred.extend(output)
-
-#      labels = labels.data.cpu().numpy()
-
-#      y_true.extend(labels)
-
-# classes = ("PE", "PET", "PP", "PS")
-
-# classes = ("PE", "PET", "PP", "PS")
-
-# cf_matrix = confusion_matrix(y_true, y_pred)  # Swap order here
-
-# row_sums = np.sum(cf_matrix, axis=1, keepdims=True)
-# row_sums[row_sums == 0] = 1  # Prevent division by zero
-
-# df_cm = pd.DataFrame(cf_matrix / row_sums, index=classes, columns=classes)
-
-# plt.figure(figsize=(12,7))
-# sb.heatmap(df_cm, annot=True, cmap="Blues", fmt=".2f")
-# plt.xlabel('True Label')
-# plt.ylabel('Predicted Label')
-# plt.show()
