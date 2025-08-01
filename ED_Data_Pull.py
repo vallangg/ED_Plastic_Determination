@@ -20,8 +20,8 @@ class DataPuller(Dataset):
           self.labels = []       # Numeric label for each sample
           self.label_map = {}    # Map from file name to numeric label
           self.file_names = []   # Optional: store names for reference
-          self.allowed_classes = {'PE': 0, 'PET':1, 'PP':2, 'PS':3} # these are the classes that are allowed
-          self.class_lookup = {0: 'PE', 1:"PET", 2:"PP", 3:"PS"}
+          self.allowed_classes = {'PE': 3, 'PET':1, 'PP':0, 'PS':1} # these are the classes that are allowed
+          self.class_lookup = {3: 'PE', 1:"PET", 0:"PP", 1:"PS"}
 
           self._load_data(folder_path)
 

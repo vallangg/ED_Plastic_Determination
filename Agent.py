@@ -194,7 +194,7 @@ def plot_confusion_matrix(agent, data_loader, class_names):
 
 # define variables
 model = Brain()
-dataset = DataPuller('/Users/vandergeorgeff/Library/CloudStorage/OneDrive-UniversityofDenver/Bok Group/Microplastics/AS_Data')
+dataset = DataPuller('/Users/vandergeorgeff/Library/CloudStorage/OneDrive-UniversityofDenver/Bok Group/Microplastics/AS_Data_Chiral')
 # dataset = DataPuller('C:/Users/georg/OneDrive - University of Denver/Bok Group/Microplastics/AS_Data')
 splitter = DatasetSplitter(dataset, train_ratio=0.8)
 train_loader, test_loader = splitter.get_loaders()
@@ -205,45 +205,5 @@ agent = Agent(model, test_loader, train_loader, epochs=300)
 agent.train()
 agent.evaluate()
 
-class_names = ("PE", "PET", "PP", "PS")  # Make sure this matches your 5 classes
+class_names = ("PP", "PS")  # Make sure this matches your 5 classes
 plot_confusion_matrix(agent, test_loader, class_names)
-
-
-
-
-# # code to make a confusion matrix 
-# # https://jillanisofttech.medium.com/building-an-ann-with-pytorch-a-deep-dive-into-neural-network-training-a7fdaa047d81
-
-# conf_loaders = splitter.get_all_loaders()
-
-# y_pred = []
-# y_true = []
-
-# for inputs, labels in conf_loaders:
-
-#      output = model(inputs)
-
-#      output = (T.max(T.exp(output), 1)[1]).data.cpu().numpy()
-
-#      y_pred.extend(output)
-
-#      labels = labels.data.cpu().numpy()
-
-#      y_true.extend(labels)
-
-# classes = ("PE", "PET", "PP", "PS")
-
-# classes = ("PE", "PET", "PP", "PS")
-
-# cf_matrix = confusion_matrix(y_true, y_pred)  # Swap order here
-
-# row_sums = np.sum(cf_matrix, axis=1, keepdims=True)
-# row_sums[row_sums == 0] = 1  # Prevent division by zero
-
-# df_cm = pd.DataFrame(cf_matrix / row_sums, index=classes, columns=classes)
-
-# plt.figure(figsize=(12,7))
-# sb.heatmap(df_cm, annot=True, cmap="Blues", fmt=".2f")
-# plt.xlabel('True Label')
-# plt.ylabel('Predicted Label')
-# plt.show()
